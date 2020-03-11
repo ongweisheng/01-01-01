@@ -1,4 +1,6 @@
 #include <serialize.h>
+
+
 #include "packet.h"
 #include "constants.h"
 #include <math.h>
@@ -10,7 +12,7 @@
 // Number of ticks per revolution from the 
 // wheel encoder.
 
-#define COUNTS_PER_REV      1
+#define COUNTS_PER_REV      185
 
 // Wheel circumference in cm.
 // We will use this to calculate forward/backward distance traveled 
@@ -20,10 +22,10 @@
 
 // Motor control pins. You need to adjust these till
 // Alex moves in the correct direction
-#define LF                  6   // Left forward pin
-#define LR                  5   // Left reverse pin
-#define RF                  10  // Right forward pin
-#define RR                  11  // Right reverse pin
+#define LF                  5   // Left forward pin 
+#define LR                  6   // Left reverse pin
+#define RF                  11  // Right forward pin
+#define RR                  10  // Right reverse pin
 
 /*
  *    Alex's State Variables
@@ -43,7 +45,9 @@ volatile unsigned long rightRevs;
 volatile unsigned long forwardDist;
 volatile unsigned long reverseDist;
 
-
+// variable for distance travelled for each wheel
+volatile unsigned long distanceLeft;
+volatile unsigned long distanceRight;
 /*
  * 
  * Alex Communication Routines.
@@ -173,15 +177,31 @@ void enablePullups()
 void leftISR()
 {
   leftTicks++;
-  Serial.print("LEFT: ");
-  Serial.println(leftTicks);
+  // Serial.print("LEFT: ");
+  // Serial.println(leftTicks);
+  if (leftTicks > COUNTS_PER_REV){
+    leftTicks = 0;
+    distanceLeft += WHEEL_CIRC;
+    Serial.print("Distance: ");
+    Serial.print(distanceLeft);
+    Serial.print(" ");
+    Serial.println(distanceRight);
+  }
 }
 
 void rightISR()
 {
   rightTicks++;
-  Serial.print("RIGHT: ");
-  Serial.println(rightTicks);
+  // Serial.print("RIGHT: ");
+  // Serial.println(rightTicks);
+  if (rightTicks > COUNTS_PER_REV){
+    rightTicks = 0;
+    distanceRight += WHEEL_CIRC;
+    Serial.print("Distance: ");
+    Serial.print(distanceLeft);
+    Serial.print(" ");
+    Serial.println(distanceRight);
+  }
 }
 
 // Set up the external interrupt pins INT0 and INT1
@@ -200,7 +220,6 @@ void setupEINT()
 // should call rightISR.
 
 ISR(INT0_vect){
-  Serial.print("R");
   leftISR();
 }
   
@@ -543,7 +562,7 @@ void loop() {
   
 // Uncomment the code below for Step 2 of Activity 3 in Week 8 Studio 2
 
-// forward(0, 100);
+ //forward(0, 100);
 
 // Uncomment the code below for Week 9 Studio 2
 
