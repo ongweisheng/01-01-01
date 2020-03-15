@@ -4,6 +4,7 @@
 #include "packet.h"
 #include "constants.h"
 #include <math.h>
+#include <stdarg.h>
 
 /*
  * Alex's configuration constants
@@ -94,6 +95,14 @@ void sendMessage(const char *message)
   sendResponse(&messagePacket);
 }
 
+void dbprint(char *format, ...){
+  va_list args;
+  char buffer[128];
+
+  va_start(args, format);
+  vsprintf(buffer, format, args);
+  sendMessage(buffer);
+}
 void sendBadPacket()
 {
   // Tell the Pi that it sent us a packet with a bad
