@@ -31,6 +31,13 @@ volatile TDirection dir = STOP;
 
 #define WHEEL_CIRC          6*PI
 
+// Alex's length and breadth in cm
+#define ALEX_LENGTH         // include length of ALEX here
+#define ALEX_BREADTH        // include breadth of ALEX here
+
+float alexDiagonal = 0.0;
+float alexCirc = 0.0;
+
 // Motor control pins. You need to adjust these till
 // Alex moves in the correct direction
 #define LF                  5   // Left forward pin 
@@ -63,6 +70,14 @@ volatile unsigned long rightRevs;
 // Forward and backward distance traveled
 volatile unsigned long forwardDist;
 volatile unsigned long reverseDist;
+
+// variables to keep track of whether we have moved a commanded distance
+unsigned long deltaDist;
+unsigned long newDist;
+
+// variables to keep track of our turning angle
+unsigned long deltaTicks;
+unsigned long targetTicks;
 
 /*
  * 
@@ -379,6 +394,14 @@ int pwmVal(float speed)
 // continue moving forward indefinitely.
 void forward(float dist, float speed)
 {
+  //Code to tell us how far we have to move
+  if (dist == 0){
+    deltaDist = 999999;
+  } else {
+    deltaDist = dist;
+  }
+  newDist = forwardDist + deltaDist;
+  
   dir = FORWARD;
 
   int val = pwmVal(speed);
@@ -404,6 +427,13 @@ void forward(float dist, float speed)
 // continue reversing indefinitely.
 void reverse(float dist, float speed)
 {
+  if (dist == 0){
+    deltaDist = 999999;
+  } else {
+    deltaDist = dist;
+  }
+  newDist = reverseDist + deltaDist;
+  
   dir = BACKWARD;
 
   int val = pwmVal(speed);
@@ -426,8 +456,28 @@ void reverse(float dist, float speed)
 // turn left at half speed.
 // Specifying an angle of 0 degrees will cause Alex to
 // turn left indefinitely.
+
+// new function to estimate number of wheel ticks needed to turn an angle
+unsigned long computeDeltaTicks(float ang){
+  // We will assume that angular distance moved = linear distance moved in one wheel
+  // revolution. This is (probably) incorrect but simplifies calculation.
+  // # of wheel revs to make one full 360 turn is alexCirc/ WHEEL_CIRC
+  // This is for 360 degrees. For ang degrees it will be (ang * alexCirc) / (360 * WHEEL_CIRC)
+  // To convert to ticks, we multiply by COUNTS_PER_REV
+
+  unsigned long ticks = (unsigned long) ((ang * alexCirc * COUNTS_PER_REV) / (360.0 * WHEEL_CIRC));
+
+  return ticks;
+}
 void left(float ang, float speed)
 {
+  if (ang == 0){
+    deltaTicks = 999999;
+  } else {
+    deltaTicks = computeDeltaTicks(ang);
+  }
+  targetTicks = leftReverseTicksTurns + deltaTicks;
+  
   dir = LEFT;
 
   int val = pwmVal(speed);
@@ -449,6 +499,13 @@ void left(float ang, float speed)
 // turn right indefinitely.
 void right(float ang, float speed)
 {
+  if (ang == 0){
+    deltaTicks = 999999;
+  } else {
+    deltaTicks = computeDeltaTicks(ang);
+  }
+  targetTicks = rightReverseTicks + deltaTicks;
+
   dir = RIGHT;
   
   int val = pwmVal(speed);
@@ -595,6 +652,9 @@ void waitForHello()
 
 void setup() {
   // put your setup code here, to run once:
+  // Compute the diagonal
+  alexDiagonal = sqrt((ALEX_LENGTH * ALEX_BREADTH) + (ALEX_BREADTH * ALEX_BREADTH));
+  alexCirc = PI * alexDiagonal;
 
   cli();
   setupEINT();
@@ -638,21 +698,62 @@ void loop() {
 // Uncomment the code below for Week 9 Studio 2
 
 
-  //put your main code here, to run repeatedly:
-  TPacket recvPacket; // This holds commands from the Pi
+//put your main code here, to run repeatedly:
+TPacket recvPacket; // This holds commands from the Pi
 
-  TResult result = readPacket(&recvPacket);
+TResult result = readPacket(&recvPacket);
   
-  if(result == PACKET_OK)
-    handlePacket(&recvPacket);
+if(result == PACKET_OK)
+  handlePacket(&recvPacket);
+else
+  if(result == PACKET_BAD)
+  { 
+    sendBadPacket();
+  }
   else
-    if(result == PACKET_BAD)
-    { 
-      sendBadPacket();
+    if(result == PACKET_CHECKSUM_BAD)
+    {
+      sendBadChecksum();
+    } 
+
+if (deltaDist > 0){
+  if (dir == FORWARD){
+    if (forwardDist >= newDist){
+      deltaDist = 0;
+      newDist = 0;
+      stop();
     }
-    else
-      if(result == PACKET_CHECKSUM_BAD)
-      {
-        sendBadChecksum();
-      } 
+  } else if (dir == BACKWARD){
+    if (reverseDist >= newDist){
+      deltaDist = 0;
+      newDist = 0;
+      stop();
+    }
+  } else if (dir == STOP){
+    deltaDist = 0;
+    newDist = 0;
+    stop();
+  }
+}
+
+if (deltaTicks > 0){
+  if (dir == LEFT){
+    if (leftReverseTicksTurns >= targetTicks){
+      deltaTicks = 0;
+      targetTicks = 0;
+      stop();
+    } 
+  } else if (dir == RIGHT){
+    if (rightReverseTicksTurns >= targetTicks){
+      deltaTicks = 0;
+      targetTicks = 0;
+      stop();
+    }
+  } else if (dir == STOP){
+    deltaTicks = 0;
+    targetTicks = 0;
+    stop();
+  }
+}
+
 }
