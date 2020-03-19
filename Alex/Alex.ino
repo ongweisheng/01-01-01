@@ -32,8 +32,8 @@ volatile TDirection dir = STOP;
 #define WHEEL_CIRC          6*PI
 
 // Alex's length and breadth in cm
-#define ALEX_LENGTH         // include length of ALEX here
-#define ALEX_BREADTH        // include breadth of ALEX here
+#define ALEX_LENGTH         17// include length of ALEX here
+#define ALEX_BREADTH        11// include breadth of ALEX here
 
 float alexDiagonal = 0.0;
 float alexCirc = 0.0;
