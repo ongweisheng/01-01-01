@@ -31,22 +31,6 @@ void handleError(TResult error)
 	}
 }
 
-void handleStatus(TPacket *packet)
-{
-	printf("\n ------- ALEX STATUS REPORT ------- \n\n");
-	printf("Left Forward Ticks:\t\t%d\n", packet->params[0]);
-	printf("Right Forward Ticks:\t\t%d\n", packet->params[1]);
-	printf("Left Reverse Ticks:\t\t%d\n", packet->params[2]);
-	printf("Right Reverse Ticks:\t\t%d\n", packet->params[3]);
-	printf("Left Forward Ticks Turns:\t%d\n", packet->params[4]);
-	printf("Right Forward Ticks Turns:\t%d\n", packet->params[5]);
-	printf("Left Reverse Ticks Turns:\t%d\n", packet->params[6]);
-	printf("Right Reverse Ticks Turns:\t%d\n", packet->params[7]);
-	printf("Forward Distance:\t\t%d\n", packet->params[8]);
-	printf("Reverse Distance:\t\t%d\n", packet->params[9]);
-	printf("\n---------------------------------------\n\n");
-}
-
 void handleResponse(TPacket *packet)
 {
 	// The response code is stored in command
@@ -54,10 +38,6 @@ void handleResponse(TPacket *packet)
 	{
 		case RESP_OK:
 			printf("Command OK\n");
-		break;
-
-		case RESP_STATUS:
-			handleStatus(packet);
 		break;
 
 		default:
@@ -166,7 +146,7 @@ void flushInput()
 
 void getParams(TPacket *commandPacket)
 {
-	printf("Enter delay/power");
+	printf("Enter delay/power\n");
 	// printf("Enter delay in (e.g. 50) and power in %% (e.g. 75) separated by space.\n");
 	// printf("E.g. 50 75 means go at 50 cm at 75%% power for forward/backward, or 50 degrees left or right turn at 75%%  power\n");
 	scanf("%d %d", &commandPacket->params[0], &commandPacket->params[1]);
@@ -215,19 +195,6 @@ void sendCommand(char command)
 			sendPacket(&commandPacket);
 			break;
 
-		case 'c':
-		case 'C':
-			commandPacket.command = COMMAND_CLEAR_STATS;
-			commandPacket.params[0] = 0;
-			sendPacket(&commandPacket);
-			break;
-
-		case 'g':
-		case 'G':
-			commandPacket.command = COMMAND_GET_STATS;
-			sendPacket(&commandPacket);
-			break;
-
 		case 'q':
 		case 'Q':
 			exitFlag=1;
@@ -263,7 +230,7 @@ int main()
 	while(!exitFlag)
 	{
 		char ch;
-		printf("Command (f=forward, b=reverse, l=turn left, r=turn right, s=stop, c=clear stats, g=get stats q=exit)\n");
+		printf("Command (f=forward, b=reverse, l=turn left, r=turn right, s=stop, q=exit)\n");
 		scanf("%c", &ch);
 
 		// Purge extraneous characters from input stream
