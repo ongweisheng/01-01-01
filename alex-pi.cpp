@@ -144,14 +144,15 @@ void flushInput()
 	while((c = getchar()) != '\n' && c != EOF);
 }
 
-void getParams(TPacket *commandPacket)
-{
-	printf("Enter delay/power\n");
-	// printf("Enter delay in (e.g. 50) and power in %% (e.g. 75) separated by space.\n");
-	// printf("E.g. 50 75 means go at 50 cm at 75%% power for forward/backward, or 50 degrees left or right turn at 75%%  power\n");
-	scanf("%d %d", &commandPacket->params[0], &commandPacket->params[1]);
-	flushInput();
-}
+// void getParams(TPacket *commandPacket)
+// {
+// 	printf("Enter delay/power\n");
+// 	// printf("Enter delay in (e.g. 50) and power in %% (e.g. 75) separated by space.\n");
+// 	// printf("E.g. 50 75 means go at 50 cm at 75%% power for forward/backward, or 50 degrees left or right turn at 75%%  power\n");
+// 	scanf("%d %d", &commandPacket->params[0], &commandPacket->params[1]);
+	
+// 	flushInput();
+// }
 
 void sendCommand(char command)
 {
@@ -163,28 +164,32 @@ void sendCommand(char command)
 	{
 		case 'f':
 		case 'F':
-			getParams(&commandPacket);
+			//getParams(&commandPacket);
+			commandPacket.params[0] = 500;
 			commandPacket.command = COMMAND_FORWARD;
 			sendPacket(&commandPacket);
 			break;
 
 		case 'b':
 		case 'B':
-			getParams(&commandPacket);
+			//getParams(&commandPacket);
+			commandPacket.params[0] = 500;
 			commandPacket.command = COMMAND_REVERSE;
 			sendPacket(&commandPacket);
 			break;
 
 		case 'l':
 		case 'L':
-			getParams(&commandPacket);
+			//getParams(&commandPacket);
+			commandPacket.params[0] = 500;
 			commandPacket.command = COMMAND_TURN_LEFT;
 			sendPacket(&commandPacket);
 			break;
 
 		case 'r':
 		case 'R':
-			getParams(&commandPacket);
+			//getParams(&commandPacket);
+			commandPacket.params[0] = 500;
 			commandPacket.command = COMMAND_TURN_RIGHT;
 			sendPacket(&commandPacket);
 			break;

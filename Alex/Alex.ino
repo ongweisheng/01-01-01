@@ -5,6 +5,22 @@
 #include "constants.h"
 #include <math.h>
 #include <stdarg.h>
+#include <avr/sleep.h>
+#include "Arduino.h"
+#include <avr/io.h>
+#include <util/delay.h>
+
+//mask definitions
+
+#define PRR_TWI_MASK 0b10000000
+#define PRR_SPI_MASK 0b00000100
+#define ADCSRA_ADC_MASK 0b10000000
+#define PRR_ADC_MASK 0b00000001
+#define PRR_TIMER2_MASK 0b01000000
+#define PRR_TIMER0_MASK 0b00100000
+#define PRR_TIMER1_MASK 0b00001000
+#define SMCR_SLEEP_ENABLE_MASK 0b00000001
+#define SMCR_IDLE_MODE_MASK 0b11110001
 
 typedef enum {
   STOP = 0,
@@ -22,6 +38,10 @@ volatile TDirection dir = STOP;
 #define LR                  6   // Left reverse pin
 #define RF                  11  // Right forward pin
 #define RR                  10  // Right reverse pin
+
+// Motor speed for left and right motor
+#define LMS 255
+#define RMS 255
 
 /*
  * 
@@ -203,22 +223,22 @@ void startMotors()
 }
 
 // Convert percentages to PWM values
-int pwmVal(float speed)
-{
-  if(speed < 0.0)
-    speed = 0;
+// int pwmVal(float speed)
+// {
+//   if(speed < 0.0)
+//     speed = 0;
 
-  if(speed > 100.0)
-    speed = 100.0;
+//   if(speed > 100.0)
+//     speed = 100.0;
 
-  return (int) ((speed / 100.0) * 255.0);
-}
+//   return (int) ((speed / 100.0) * 255.0);
+//}
 
-void forward(int moveTime, float speed) //changing to delay and speed instead
+void forward(int moveTime) //changing to delay and speed instead
 {  
   dir = FORWARD;
 
-  int val = pwmVal(speed);
+  // int val = pwmVal(speed);
 
   // For now we will ignore dist and move
   // forward indefinitely. We will fix this
@@ -228,18 +248,18 @@ void forward(int moveTime, float speed) //changing to delay and speed instead
   // RF = Right forward pin, RR = Right reverse pin
   // This will be replaced later with bare-metal code.
   
-  analogWrite(LF, val);
-  analogWrite(RF, val);
+  analogWrite(LF, LMS);
+  analogWrite(RF, RMS);
   delay(moveTime);
   analogWrite(LF, 0);
   analogWrite(RF, 0);
 }
 
-void reverse(int moveTime, float speed) //changing to delay and speed instead
+void reverse(int moveTime) //changing to delay and speed instead
 { 
   dir = BACKWARD;
 
-  int val = pwmVal(speed);
+  // int val = pwmVal(speed);
 
   // For now we will ignore dist and 
   // reverse indefinitely. We will fix this
@@ -248,8 +268,8 @@ void reverse(int moveTime, float speed) //changing to delay and speed instead
   // LF = Left forward pin, LR = Left reverse pin
   // RF = Right forward pin, RR = Right reverse pin
   // This will be replaced later with bare-metal code.
-  analogWrite(LR, val);
-  analogWrite(RR, val);
+  analogWrite(LR, LMS);
+  analogWrite(RR, RMS);
   delay(moveTime);
   analogWrite(LR, 0);
   analogWrite(RR, 0);
@@ -261,35 +281,35 @@ void reverse(int moveTime, float speed) //changing to delay and speed instead
 // Specifying an angle of 0 degrees will cause Alex to
 // turn left indefinitely.
 
-void left(int moveTime, float speed) //changing to delay and speed instead
+void left(int moveTime) //changing to delay and speed instead
 {  
   dir = LEFT;
 
-  int val = pwmVal(speed);
+  // int val = pwmVal(speed);
 
   // For now we will ignore ang. We will fix this in Week 9.
   // We will also replace this code with bare-metal later.
   // To turn left we reverse the left wheel and move
   // the right wheel forward.
-  analogWrite(LR, val);
-  analogWrite(RF, val);
+  analogWrite(LR, LMS);
+  analogWrite(RF, RMS);
   delay(moveTime);
   analogWrite(LR, 0);
   analogWrite(RF, 0);
 }
 
-void right(int moveTime, float speed) //changing to delay and speed instead
+void right(int moveTime) //changing to delay and speed instead
 {
   dir = RIGHT;
   
-  int val = pwmVal(speed);
+  // int val = pwmVal(speed);
 
   // For now we will ignore ang. We will fix this in Week 9.
   // We will also replace this code with bare-metal later.
   // To turn right we reverse the right wheel and move
   // the left wheel forward.
-  analogWrite(RR, val);
-  analogWrite(LF, val);
+  analogWrite(RR, LMS);
+  analogWrite(LF, RMS);
   delay(moveTime);
   analogWrite(RR, 0);
   analogWrite(LF, 0);
@@ -319,22 +339,22 @@ void handleCommand(TPacket *command)
     // For movement commands, params[0] = distance, params[1] = speed.
     case COMMAND_FORWARD:
         sendOK();
-        forward((float) command->params[0], (float) command->params[1]);
+        forward(command->params[0]);
         break;
 
     case COMMAND_REVERSE:
         sendOK();
-        reverse((float) command->params[0], (float) command->params[1]);
+        reverse(command->params[0]);
         break;
 
     case COMMAND_TURN_LEFT:
         sendOK();
-        left((float) command->params[0], (float) command->params[1]);
+        left(command->params[0]);
         break;
 
     case COMMAND_TURN_RIGHT:
         sendOK();
-        right((float) command->params[0], (float) command->params[1]);
+        right(command->params[0]);
         break;
 
     case COMMAND_STOP:
@@ -388,6 +408,63 @@ void waitForHello()
   } // !exit
 }
 
+void WDT_off(void){
+  /* Global interrupt should be turned OFF here if not already done so */
+
+  // Clear WDRF in MCUSR
+  MCUSR &= ~(1<<WDRF);
+
+  // Write logical one to WDCE and WDE
+  // Keep old prescaler setting to prevent unintentional time-out
+  WDTCSR |= (1<<WDCE) | (1<<WDE);
+
+  //Turn off WDT
+  WDTCSR = 0x00;
+
+  //Global interrupt should be turned ON here if subsequent operations after calling this function do not require turning off global interrupt
+}
+
+void setupPowerSaving(){
+  // Turn off the Watchdog Timer
+  WDT_off();
+  // Modify PRR to shut down TWI
+  PRR |= PRR_TWI_MASK;
+  // Modify PRR to shut down SPI
+  PRR |= PRR_SPI_MASK;
+  // Modify ADCSRA to disable ADC,
+  // then modify PRR to shut down ADC
+  ADCSRA |= ADCSRA_ADC_MASK;
+  PRR |= PRR_ADC_MASK;
+  // Set the SMCR to choose the IDLE sleep mode
+  // Do not set the Sleep Enable (SE) bit yet
+  SMCR &= SMCR_IDLE_MODE_MASK;
+  // Set Port B Pin 5 as output pin, then write a logic LOW
+  // to it such that the LED tied to Arduino's Pin 13 is OFF.
+  DDRB |= 0b00100000; // Arduino PIN 13 only
+  PORTB &= 0b11011111;
+
+  // Continue to add more pins that we are not using here to turn it off
+
+}
+
+void putArduinoToIdle(){
+  // Modify PRR to shut down TIMER 0, 1 and 2
+  PRR |= PRR_TIMER0_MASK;
+  PRR |= PRR_TIMER1_MASK;
+  PRR |= PRR_TIMER2_MASK;
+  // Modify SE bit in SMCR to enable (i.e., allow) sleep
+  SMCR |= SMCR_SLEEP_ENABLE_MASK;
+  // The following function puts ATmega328P's MCU into sleep;
+  // it wakes up from sleep when USART serial data arrives sleep_cpu();
+  sleep_cpu();
+  // Modify SE bit in SMCR to disable (i.e., disallow) sleep
+  SMCR &= (~SMCR_SLEEP_ENABLE_MASK);
+  // Modify PRR to power up TIMER 0, 1, and 2
+  PRR &= (~PRR_TIMER0_MASK);
+  PRR &= (~PRR_TIMER1_MASK);
+  PRR &= (~PRR_TIMER2_MASK);
+}
+
 void setup() {
   // put your setup code here, to run once:
   cli();
@@ -395,6 +472,7 @@ void setup() {
   startSerial();
   setupMotors();
   startMotors();
+  setupPowerSaving();
   sei();
 }
 
