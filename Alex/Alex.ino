@@ -222,23 +222,9 @@ void startMotors()
   
 }
 
-// Convert percentages to PWM values
-// int pwmVal(float speed)
-// {
-//   if(speed < 0.0)
-//     speed = 0;
-
-//   if(speed > 100.0)
-//     speed = 100.0;
-
-//   return (int) ((speed / 100.0) * 255.0);
-//}
-
 void forward(int moveTime) //changing to delay and speed instead
 {  
   dir = FORWARD;
-
-  // int val = pwmVal(speed);
 
   // For now we will ignore dist and move
   // forward indefinitely. We will fix this
@@ -258,8 +244,6 @@ void forward(int moveTime) //changing to delay and speed instead
 void reverse(int moveTime) //changing to delay and speed instead
 { 
   dir = BACKWARD;
-
-  // int val = pwmVal(speed);
 
   // For now we will ignore dist and 
   // reverse indefinitely. We will fix this
@@ -285,8 +269,6 @@ void left(int moveTime) //changing to delay and speed instead
 {  
   dir = LEFT;
 
-  // int val = pwmVal(speed);
-
   // For now we will ignore ang. We will fix this in Week 9.
   // We will also replace this code with bare-metal later.
   // To turn left we reverse the left wheel and move
@@ -301,8 +283,6 @@ void left(int moveTime) //changing to delay and speed instead
 void right(int moveTime) //changing to delay and speed instead
 {
   dir = RIGHT;
-  
-  // int val = pwmVal(speed);
 
   // For now we will ignore ang. We will fix this in Week 9.
   // We will also replace this code with bare-metal later.
@@ -440,11 +420,16 @@ void setupPowerSaving(){
   SMCR &= SMCR_IDLE_MODE_MASK;
   // Set Port B Pin 5 as output pin, then write a logic LOW
   // to it such that the LED tied to Arduino's Pin 13 is OFF.
-  DDRB |= 0b00100000; // Arduino PIN 13 only
-  PORTB &= 0b11011111;
+  // DDRB |= 0b00100000; // Arduino PIN 13 only
+  // PORTB &= 0b11011111;
 
   // Continue to add more pins that we are not using here to turn it off
+  // Pins in use are Arduino pins 5,6,10 & 11, the rest will be turned off accordingly like above
+  DDRD |= 0b1001111;
+  PORTD &= 0b01100000;
 
+  DDRB |= 0b00110011;
+  PORTD &= 0b11001100;
 }
 
 void putArduinoToIdle(){
@@ -507,15 +492,16 @@ TResult result = readPacket(&recvPacket);
   
 if(result == PACKET_OK)
   handlePacket(&recvPacket);
-else
-  if(result == PACKET_BAD)
+else if(result == PACKET_BAD)
   { 
     sendBadPacket();
   }
-  else
-    if(result == PACKET_CHECKSUM_BAD)
+else if(result == PACKET_CHECKSUM_BAD)
     {
       sendBadChecksum();
     } 
+else{
+  putArduinoToIdle();
+}
 
 }
