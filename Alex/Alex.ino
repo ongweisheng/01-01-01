@@ -1,5 +1,7 @@
 #include <serialize.h>
 
+#include <serialize.h>
+
 
 #include "packet.h"
 #include "constants.h"
@@ -212,6 +214,21 @@ void setupMotors()
    *    B1IN - Pin 10, PB2, OC1B
    *    B2In - pIN 11, PB3, OC2A
    */
+  DDRD |= 0b01100000;
+  DDRB |= 0b00001100;
+  // TCNT0 = 0;
+  // TCNT1 = 0;
+  // TCNT2 = 0;
+  // TIMSK0 |= 0b110;
+  // TIMSK1 |= 0b110;
+  // TIMSK2 |= 0b110;
+  // OCR0A = 255;
+  // OCR0B = 255;
+  // OCR1B = 65535;
+  // OCR2A = 255;
+  // TCCR0B |= 0b00000001;
+  // TCCR1B |= 0b00000001;
+  // TCCR2B |= 0b00000001;
 }
 
 // Start the PWM for Alex's motors.
@@ -221,6 +238,11 @@ void startMotors()
 {
   
 }
+
+// #define LF                  5   // Left forward pin 
+// #define LR                  6   // Left reverse pin
+// #define RF                  11  // Right forward pin
+// #define RR                  10  // Right reverse pin
 
 void forward(int moveTime) //changing to delay and speed instead
 {  
@@ -234,11 +256,10 @@ void forward(int moveTime) //changing to delay and speed instead
   // RF = Right forward pin, RR = Right reverse pin
   // This will be replaced later with bare-metal code.
   
-  analogWrite(LF, LMS);
-  analogWrite(RF, RMS);
-  delay(moveTime);
-  analogWrite(LF, 0);
-  analogWrite(RF, 0);
+  PORTD |= 0b00100000;
+  PORTB |= 0b00001000;
+
+  dir = STOP;
 }
 
 void reverse(int moveTime) //changing to delay and speed instead
@@ -257,6 +278,8 @@ void reverse(int moveTime) //changing to delay and speed instead
   delay(moveTime);
   analogWrite(LR, 0);
   analogWrite(RR, 0);
+
+  dir = STOP;
 }
 
 // Turn Alex left "ang" degrees at speed "speed".
@@ -278,6 +301,8 @@ void left(int moveTime) //changing to delay and speed instead
   delay(moveTime);
   analogWrite(LR, 0);
   analogWrite(RF, 0);
+
+  dir = STOP;
 }
 
 void right(int moveTime) //changing to delay and speed instead
@@ -293,6 +318,8 @@ void right(int moveTime) //changing to delay and speed instead
   delay(moveTime);
   analogWrite(RR, 0);
   analogWrite(LF, 0);
+
+  dir = STOP;
 }
 
 // Stop Alex. To replace with bare-metal code later.
@@ -486,22 +513,24 @@ void handlePacket(TPacket *packet)
 void loop() {
 
 //put your main code here, to run repeatedly:
+
+if (dir == STOP){
+  putArduinoToIdle();
+}
 TPacket recvPacket; // This holds commands from the Pi
 
 TResult result = readPacket(&recvPacket);
   
 if(result == PACKET_OK)
   handlePacket(&recvPacket);
-else if(result == PACKET_BAD)
+else 
+  if(result == PACKET_BAD)
   { 
     sendBadPacket();
   }
-else if(result == PACKET_CHECKSUM_BAD)
+  else 
+    if(result == PACKET_CHECKSUM_BAD)
     {
       sendBadChecksum();
     } 
-else{
-  putArduinoToIdle();
-}
-
 }
