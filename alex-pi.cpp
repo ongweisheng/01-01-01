@@ -164,32 +164,24 @@ void sendCommand(char command)
 	{
 		case 'f':
 		case 'F':
-			//getParams(&commandPacket);
-			commandPacket.params[0] = 500;
 			commandPacket.command = COMMAND_FORWARD;
 			sendPacket(&commandPacket);
 			break;
 
 		case 'b':
 		case 'B':
-			//getParams(&commandPacket);
-			commandPacket.params[0] = 500;
 			commandPacket.command = COMMAND_REVERSE;
 			sendPacket(&commandPacket);
 			break;
 
 		case 'l':
 		case 'L':
-			//getParams(&commandPacket);
-			commandPacket.params[0] = 500;
 			commandPacket.command = COMMAND_TURN_LEFT;
 			sendPacket(&commandPacket);
 			break;
 
 		case 'r':
 		case 'R':
-			//getParams(&commandPacket);
-			commandPacket.params[0] = 500;
 			commandPacket.command = COMMAND_TURN_RIGHT;
 			sendPacket(&commandPacket);
 			break;

@@ -1,8 +1,4 @@
 #include <serialize.h>
-
-#include <serialize.h>
-
-
 #include "packet.h"
 #include "constants.h"
 #include <math.h>
@@ -208,129 +204,72 @@ void writeSerial(const char *buffer, int len)
 // to drive the motors.
 void setupMotors()
 {
-  /* Our motor set up is:  
-   *    A1IN - Pin 5, PD5, OC0B
-   *    A2IN - Pin 6, PD6, OC0A
-   *    B1IN - Pin 10, PB2, OC1B
-   *    B2In - pIN 11, PB3, OC2A
-   */
+  //Setting LF, LR, RF, RR to output pins
   DDRD |= 0b01100000;
   DDRB |= 0b00001100;
-  // TCNT0 = 0;
-  // TCNT1 = 0;
-  // TCNT2 = 0;
-  // TIMSK0 |= 0b110;
-  // TIMSK1 |= 0b110;
-  // TIMSK2 |= 0b110;
-  // OCR0A = 255;
-  // OCR0B = 255;
-  // OCR1B = 65535;
-  // OCR2A = 255;
-  // TCCR0B |= 0b00000001;
-  // TCCR1B |= 0b00000001;
-  // TCCR2B |= 0b00000001;
 }
 
-// Start the PWM for Alex's motors.
-// We will implement this later. For now it is
-// blank.
-void startMotors()
-{
-  
-}
+//movement commands move with a fixed delay
 
-// #define LF                  5   // Left forward pin 
-// #define LR                  6   // Left reverse pin
-// #define RF                  11  // Right forward pin
-// #define RR                  10  // Right reverse pin
-
-void forward(int moveTime) //changing to delay and speed instead
+void forward()
 {  
   dir = FORWARD;
-
-  // For now we will ignore dist and move
-  // forward indefinitely. We will fix this
-  // in Week 9.
-
-  // LF = Left forward pin, LR = Left reverse pin
-  // RF = Right forward pin, RR = Right reverse pin
-  // This will be replaced later with bare-metal code.
   
-  PORTD |= 0b00100000;
-  PORTB |= 0b00001000;
+  PORTD |= 0b00100000; // output HIGH TO LF
+  PORTB |= 0b00001000; // output HIGH TO RF
+  delay(200);
+  PORTD &= 0b11011111; // output LOW TO LF
+  PORTB &= 0b11110111; // output LOW TO RF
 
   dir = STOP;
 }
 
-void reverse(int moveTime) //changing to delay and speed instead
+void reverse()
 { 
   dir = BACKWARD;
 
-  // For now we will ignore dist and 
-  // reverse indefinitely. We will fix this
-  // in Week 9.
-
-  // LF = Left forward pin, LR = Left reverse pin
-  // RF = Right forward pin, RR = Right reverse pin
-  // This will be replaced later with bare-metal code.
-  analogWrite(LR, LMS);
-  analogWrite(RR, RMS);
-  delay(moveTime);
-  analogWrite(LR, 0);
-  analogWrite(RR, 0);
+  PORTD |= 0b01000000; // output HIGH TO LR
+  PORTB |= 0b00000100; // output HIGH TO RR
+  delay(200);
+  PORTD &= 0b10111111; // output HIGH TO LR
+  PORTB &= 0b11111011; // output HIGH TO RR
 
   dir = STOP;
 }
 
-// Turn Alex left "ang" degrees at speed "speed".
-// "speed" is expressed as a percentage. E.g. 50 is
-// turn left at half speed.
-// Specifying an angle of 0 degrees will cause Alex to
-// turn left indefinitely.
-
-void left(int moveTime) //changing to delay and speed instead
+void left()
 {  
   dir = LEFT;
 
-  // For now we will ignore ang. We will fix this in Week 9.
-  // We will also replace this code with bare-metal later.
-  // To turn left we reverse the left wheel and move
-  // the right wheel forward.
-  analogWrite(LR, LMS);
-  analogWrite(RF, RMS);
-  delay(moveTime);
-  analogWrite(LR, 0);
-  analogWrite(RF, 0);
+  PORTD |= 0b01000000; // output HIGH TO LR
+  PORTB |= 0b00001000; // output HIGH TO RF
+  delay(200);
+  PORTD &= 0b10111111; // output LOW TO LR
+  PORTB &= 0b11110111; // output LOW TO RF
 
   dir = STOP;
 }
 
-void right(int moveTime) //changing to delay and speed instead
+void right()
 {
   dir = RIGHT;
 
-  // For now we will ignore ang. We will fix this in Week 9.
-  // We will also replace this code with bare-metal later.
-  // To turn right we reverse the right wheel and move
-  // the left wheel forward.
-  analogWrite(RR, LMS);
-  analogWrite(LF, RMS);
-  delay(moveTime);
-  analogWrite(RR, 0);
-  analogWrite(LF, 0);
+  PORTD |= 0b00100000; // output HIGH TO LF
+  PORTB |= 0b00000100; // output HIGH TO RR
+  delay(200);
+  PORTD &= 0b11011111; // output LOW TO LF
+  PORTB &= 0b11111011; // output LOW TO RR
 
   dir = STOP;
 }
 
-// Stop Alex. To replace with bare-metal code later.
 void stop()
 {
   dir = STOP;
-
-  analogWrite(LF, 0);
-  analogWrite(LR, 0);
-  analogWrite(RF, 0);
-  analogWrite(RR, 0);
+  
+  //output LOW to LF, LR, RF, RR
+  PORTD &= 0b10011111;
+  PORTB &= 0b11110011;
 }
 
 /*
@@ -346,22 +285,22 @@ void handleCommand(TPacket *command)
     // For movement commands, params[0] = distance, params[1] = speed.
     case COMMAND_FORWARD:
         sendOK();
-        forward(command->params[0]);
+        forward();
         break;
 
     case COMMAND_REVERSE:
         sendOK();
-        reverse(command->params[0]);
+        reverse();
         break;
 
     case COMMAND_TURN_LEFT:
         sendOK();
-        left(command->params[0]);
+        left();
         break;
 
     case COMMAND_TURN_RIGHT:
         sendOK();
-        right(command->params[0]);
+        right();
         break;
 
     case COMMAND_STOP:
@@ -483,7 +422,6 @@ void setup() {
   setupSerial();
   startSerial();
   setupMotors();
-  startMotors();
   setupPowerSaving();
   sei();
 }
