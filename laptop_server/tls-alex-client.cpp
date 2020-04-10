@@ -40,25 +40,6 @@ void handleError(const char *buffer)
 	}
 }
 
-void handleStatus(const char *buffer)
-{
-	int32_t data[16];
-	memcpy(data, &buffer[1], sizeof(data));
-
-	printf("\n ------- ALEX STATUS REPORT ------- \n\n");
-	printf("Left Forward Ticks:\t\t%d\n", data[0]);
-	printf("Right Forward Ticks:\t\t%d\n", data[1]);
-	printf("Left Reverse Ticks:\t\t%d\n", data[2]);
-	printf("Right Reverse Ticks:\t\t%d\n", data[3]);
-	printf("Left Forward Ticks Turns:\t%d\n", data[4]);
-	printf("Right Forward Ticks Turns:\t%d\n", data[5]);
-	printf("Left Reverse Ticks Turns:\t%d\n", data[6]);
-	printf("Right Reverse Ticks Turns:\t%d\n", data[7]);
-	printf("Forward Distance:\t\t%d\n", data[8]);
-	printf("Reverse Distance:\t\t%d\n", data[9]);
-	printf("\n---------------------------------------\n\n");
-}
-
 void handleMessage(const char *buffer)
 {
 	printf("MESSAGE FROM ALEX: %s\n", &buffer[1]);
@@ -80,10 +61,6 @@ void handleNetwork(const char *buffer, int len)
 	{
 		case NET_ERROR_PACKET:
 		handleError(buffer);
-		break;
-
-		case NET_STATUS_PACKET:
-		handleStatus(buffer);
 		break;
 
 		case NET_MESSAGE_PACKET:
@@ -142,14 +119,6 @@ void flushInput()
 	while((c = getchar()) != '\n' && c != EOF);
 }
 
-void getParams(int32_t *params)
-{
-	printf("Enter distance/angle in cm/degrees (e.g. 50) and power in %% (e.g. 75) separated by space.\n");
-	printf("E.g. 50 75 means go at 50 cm at 75%% power for forward/backward, or 50 degrees left or right turn at 75%%  power\n");
-	scanf("%d %d", &params[0], &params[1]);
-	flushInput();
-}
-
 void *writerThread(void *conn)
 {
 	int quit=0;
@@ -157,40 +126,30 @@ void *writerThread(void *conn)
 	while(!quit)
 	{
 		char ch;
-		printf("Command (f=forward, b=reverse, l=turn left, r=turn right, s=stop, c=clear stats, g=get stats q=exit)\n");
+		printf("Command (w=forward, s=reverse, a=turn left, d=turn right, e=stop, q=exit)\n");
 		scanf("%c", &ch);
 
 		// Purge extraneous characters from input stream
 		flushInput();
 
 		char buffer[10];
-		int32_t params[2];
 
 		buffer[0] = NET_COMMAND_PACKET;
 		switch(ch)
 		{
-			case 'f':
-			case 'F':
-			case 'b':
-			case 'B':
-			case 'l':
-			case 'L':
-			case 'r':
-			case 'R':
-						getParams(params);
-						buffer[1] = ch;
-						memcpy(&buffer[2], params, sizeof(params));
-						sendData(conn, buffer, sizeof(buffer));
-						break;
+			case 'w':
+			case 'W':
 			case 's':
 			case 'S':
-			case 'c':
-			case 'C':
-			case 'g':
-			case 'G':
-					params[0]=0;
-					params[1]=0;
-					memcpy(&buffer[2], params, sizeof(params));
+			case 'a':
+			case 'A':
+			case 'd':
+			case 'D':
+						buffer[1] = ch;
+						sendData(conn, buffer, sizeof(buffer));
+						break;
+			case 'e':
+			case 'E':
 					buffer[1] = ch;
 					sendData(conn, buffer, sizeof(buffer));
 					break;

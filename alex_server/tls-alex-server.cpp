@@ -10,7 +10,7 @@
 #define PORT_NAME			"/dev/ttyACM0"
 /* END TODO */
 
-#define BAUD_RATE			B57600
+#define BAUD_RATE			B9600
 
 // TLS Port Number
 #define SERVER_PORT			5000
@@ -64,15 +64,6 @@ void handleMessage(TPacket *packet)
 	sendNetworkData(data, sizeof(data));
 }
 
-void handleStatus(TPacket *packet)
-{
-	char data[65];
-	printf("UART STATUS PACKET\n");
-	data[0] = NET_STATUS_PACKET;
-	memcpy(&data[1], packet->params, sizeof(packet->params));
-	sendNetworkData(data, sizeof(data));
-}
-
 void handleResponse(TPacket *packet)
 {
 	// The response code is stored in command
@@ -84,10 +75,6 @@ void handleResponse(TPacket *packet)
 			resp[0] = NET_ERROR_PACKET;
 			resp[1] = RESP_OK;
 			sendNetworkData(resp, sizeof(resp));
-		break;
-
-		case RESP_STATUS:
-			handleStatus(packet);
 		break;
 
 		default:
@@ -210,61 +197,42 @@ void handleCommand(void *conn, const char *buffer)
 {
 	// The first byte contains the command
 	char cmd = buffer[1];
-	uint32_t cmdParam[2];
-
-	// Copy over the parameters.
-	memcpy(cmdParam, &buffer[2], sizeof(cmdParam));
-
+	
 	TPacket commandPacket;
 
 	commandPacket.packetType = PACKET_TYPE_COMMAND;
-	commandPacket.params[0] = cmdParam[0];
-	commandPacket.params[1] = cmdParam[1];
 
-	printf("COMMAND RECEIVED: %c %d %d\n", cmd, cmdParam[0], cmdParam[1]);
+	printf("COMMAND RECEIVED: %c\n", cmd);
 	
 	switch(cmd)
 	{
-		case 'f':
-		case 'F':
+		case 'w':
+		case 'W':
 			commandPacket.command = COMMAND_FORWARD;
-			uartSendPacket(&commandPacket);
-			break;
-
-		case 'b':
-		case 'B':
-			commandPacket.command = COMMAND_REVERSE;
-			uartSendPacket(&commandPacket);
-			break;
-
-		case 'l':
-		case 'L':
-			commandPacket.command = COMMAND_TURN_LEFT;
-			uartSendPacket(&commandPacket);
-			break;
-
-		case 'r':
-		case 'R':
-			commandPacket.command = COMMAND_TURN_RIGHT;
 			uartSendPacket(&commandPacket);
 			break;
 
 		case 's':
 		case 'S':
+			commandPacket.command = COMMAND_REVERSE;
+			uartSendPacket(&commandPacket);
+			break;
+
+		case 'a':
+		case 'A':
+			commandPacket.command = COMMAND_TURN_LEFT;
+			uartSendPacket(&commandPacket);
+			break;
+
+		case 'd':
+		case 'D':
+			commandPacket.command = COMMAND_TURN_RIGHT;
+			uartSendPacket(&commandPacket);
+			break;
+
+		case 'e':
+		case 'E':
 			commandPacket.command = COMMAND_STOP;
-			uartSendPacket(&commandPacket);
-			break;
-
-		case 'c':
-		case 'C':
-			commandPacket.command = COMMAND_CLEAR_STATS;
-			commandPacket.params[0] = 0;
-			uartSendPacket(&commandPacket);
-			break;
-
-		case 'g':
-		case 'G':
-			commandPacket.command = COMMAND_GET_STATS;
 			uartSendPacket(&commandPacket);
 			break;
 
