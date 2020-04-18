@@ -37,10 +37,6 @@ volatile TDirection dir = STOP;
 #define RF                  11  // Right forward pin
 #define RR                  10  // Right reverse pin
 
-// Motor speed for left and right motor
-#define LMS 255
-#define RMS 255
-
 /*
  * 
  * Alex Communication Routines.
@@ -74,15 +70,6 @@ void sendMessage(const char *message)
   messagePacket.packetType=PACKET_TYPE_MESSAGE;
   strncpy(messagePacket.data, message, MAX_STR_LEN);
   sendResponse(&messagePacket);
-}
-
-void dbprint(char *format, ...){
-  va_list args;
-  char buffer[128];
-
-  va_start(args, format);
-  vsprintf(buffer, format, args);
-  sendMessage(buffer);
 }
 
 void sendBadPacket()
@@ -151,29 +138,14 @@ void sendResponse(TPacket *packet)
  * Setup and start codes for serial communications
  * 
  */
-// Set up the serial connection. For now we are using 
-// Arduino Wiring, you will replace this later
-// with bare-metal code.
+// Set up the serial connection.
 void setupSerial()
 {
-  // To replace later with bare-metal.
   Serial.begin(9600);
-}
-
-// Start the serial connection. For now we are using
-// Arduino wiring and this function is empty. We will
-// replace this later with bare-metal code.
-
-void startSerial()
-{
-  // Empty for now. To be replaced with bare-metal code
-  // later on.
-  
 }
 
 // Read the serial port. Returns the read character in
 // ch if available. Also returns TRUE if ch is valid. 
-// This will be replaced later with bare-metal code.
 
 int readSerial(char *buffer)
 {
@@ -186,8 +158,7 @@ int readSerial(char *buffer)
   return count;
 }
 
-// Write to the serial port. Replaced later with
-// bare-metal code
+// Write to the serial port.
 
 void writeSerial(const char *buffer, int len)
 {
@@ -199,9 +170,7 @@ void writeSerial(const char *buffer, int len)
  * 
  */
 
-// Set up Alex's motors. Right now this is empty, but
-// later you will replace it with code to set up the PWMs
-// to drive the motors.
+// Set up Alex's motors.
 void setupMotors()
 {
   //Setting LF, LR, RF, RR to output pins
@@ -210,6 +179,8 @@ void setupMotors()
 }
 
 //movement commands move with a fixed delay
+// dir = STOP at the end of every movement function
+// so that the arduino can go to IDLE if no commands sent from the Pi
 
 void forward()
 {  
@@ -282,7 +253,6 @@ void handleCommand(TPacket *command)
 {
   switch(command->command)
   {
-    // For movement commands, params[0] = distance, params[1] = speed.
     case COMMAND_FORWARD:
         sendOK();
         forward();
@@ -308,7 +278,7 @@ void handleCommand(TPacket *command)
         stop();
         break;
     /*
-     * Implement code for other commands here.
+     * Implement code for other commands here if needed.
      * 
      */
         
@@ -335,8 +305,6 @@ void waitForHello()
     {
       if(hello.packetType == PACKET_TYPE_HELLO)
       {
-     
-
         sendOK();
         exit=1;
       }
@@ -425,7 +393,6 @@ void setup() {
   // put your setup code here, to run once:
   cli();
   setupSerial();
-  startSerial();
   setupMotors();
   setupPowerSaving();
   sei();
