@@ -202,8 +202,8 @@ void reverse()
   PORTD |= 0b01000000; // output HIGH TO LR
   PORTB |= 0b00000100; // output HIGH TO RR
   delay(250);
-  PORTD &= 0b10111111; // output HIGH TO LR
-  PORTB &= 0b11111011; // output HIGH TO RR
+  PORTD &= 0b10111111; // output LOW TO LR
+  PORTB &= 0b11111011; // output LOW TO RR
 
   dir = STOP;
 }
